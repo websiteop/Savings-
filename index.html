@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cash Book</title>
+<title>Saving</title>
 
 <style>
 body{
@@ -14,7 +14,7 @@ body{
 }
 
 .header{
-  background:linear-gradient(90deg,#0077b6,#00b4d8);
+  background:linear-gradient(90deg,#2a9d8f,#57cc99);
   color:white;
   padding:15px;
   text-align:center;
@@ -38,7 +38,7 @@ body{
 
 .cardBtn{
   background:#f1f5f9;
-  padding:16px;
+  padding:18px;
   border-radius:14px;
   text-align:center;
 }
@@ -57,7 +57,7 @@ button{
   margin-top:8px;
   border:none;
   border-radius:10px;
-  background:#0077b6;
+  background:#2a9d8f;
   color:white;
 }
 
@@ -74,7 +74,13 @@ button{
 
 #summary{
   text-align:center;
-  font-size:15px;
+  font-size:16px;
+}
+
+#more{
+  display:none;
+  margin-top:8px;
+  font-size:14px;
 }
 
 #notebook{
@@ -87,7 +93,7 @@ button{
 
 <body>
 
-<div class="header">Cash Book</div>
+<div class="header">Saving</div>
 
 <div class="card">
   <div id="mainBtns"></div>
@@ -97,16 +103,17 @@ button{
 <div class="card" id="dataBox" style="display:none;"></div>
 <div class="card" id="notebook" style="display:none;"></div>
 
-<div class="bottomBar">
+<div class="bottomBar" id="bottomBar">
   <div id="summary"></div>
+  <button onclick="toggleMore()">⬇ Show More</button>
+  <div id="more"></div>
   <button onclick="showData()">📊 Show Data</button>
 </div>
 
 <script>
 
-// 🔐 STORAGE KEYS
-const STORAGE_KEY = "cash_book_v1";
-const SALARY_KEY = "cash_book_salary_v1";
+// 🔐 STORAGE KEY
+const STORAGE_KEY = "saving_v1";
 
 // STORAGE
 function getData(){ return localStorage.getItem(STORAGE_KEY) || ""; }
@@ -145,43 +152,49 @@ function append(entry){
 function calculate(){
   let data=getData().split("\n");
 
-  let cash=0, co=0, personal=0, overtime=0;
+  let cash=0, official=0, actual=0;
 
   data.forEach(line=>{
-    if(line.startsWith("Cash In:-")) cash += parseInt(line.split(":-")[1])||0;
-    if(line.startsWith("Co. Expense:-")) co += parseInt(line.split(":-")[1])||0;
-    if(line.startsWith("P. Expense:-")) personal += parseInt(line.split(":-")[1])||0;
-    if(line.startsWith("Overtime:-")) overtime += parseInt(line.split(":-")[1])||0;
+    if(line.startsWith("Cash In:-"))
+      cash += parseInt(line.split(":-")[1])||0;
+
+    if(line.startsWith("Official Expense:-"))
+      official += parseInt(line.split(":-")[1])||0;
+
+    if(line.startsWith("Actual Expense:-"))
+      actual += parseInt(line.split(":-")[1])||0;
   });
 
-  let balance = cash - co - personal;
-
-  let salary = parseInt(localStorage.getItem(SALARY_KEY) || 0);
-  let liveSalary = 0;
-
-  if(salary){
-    liveSalary = (salary/30/8*overtime) + salary + co - cash;
-  }
+  let balance = cash - actual;
+  let saving = official - actual;
 
   summary.innerHTML=`
-    <b>Balance</b><br>${balance}<br><br>
-    <b>Personal Expense</b><br>${personal}<br><br>
-    <b>Live Salary</b><br>${salary ? Math.round(liveSalary) : "Not Set"}
+    <b>Saving</b><br>${saving}<br><br>
+    <b>Balance</b><br>${balance}
   `;
+
+  more.innerHTML=`
+    <b>Total Cash</b><br>${cash}<br><br>
+    <b>Official Expense</b><br>${official}<br><br>
+    <b>Actual Expense</b><br>${actual}
+  `;
+}
+
+// TOGGLE DETAILS
+function toggleMore(){
+  more.style.display = more.style.display==="none" ? "block" : "none";
 }
 
 // INIT
 function init(){
   mainBtns.innerHTML=`
     <div class="grid">
-      <div class="cardBtn" onclick="openOvertime()">⏱ Overtime</div>
       <div class="cardBtn" onclick="openCash()">💰 Cash In</div>
-      <div class="cardBtn" onclick="openExpense()">🏢 Co. Expense</div>
-      <div class="cardBtn" onclick="openPExpense()">🧾 P. Expense</div>
-      <div class="cardBtn" onclick="openSalary()">⚙ Set Salary</div>
+      <div class="cardBtn" onclick="openExpense()">🧾 Expense</div>
     </div>
   `;
   box.innerHTML="";
+  bottomBar.style.display="block";
   calculate();
 }
 init();
@@ -189,94 +202,47 @@ init();
 // BACK
 function back(){ init(); }
 
-// OVERTIME
-function openOvertime(){
-  mainBtns.innerHTML="";
-  box.innerHTML=`
-    <button class="backBtn" onclick="back()">⬅ Back</button>
-    <input type="number" id="val">
-    <button onclick="saveOvertime()">Save</button>
-  `;
-}
-function saveOvertime(){
-  let v=val.value;
-  if(!v)return alert("Enter value");
-  append(`Overtime:- ${v}`);
-  calculate();
-  back();
-}
-
 // CASH
 function openCash(){
   mainBtns.innerHTML="";
   box.innerHTML=`
     <button class="backBtn" onclick="back()">⬅ Back</button>
-    <input type="number" id="val">
+    <input type="number" id="cash">
     <button onclick="saveCash()">Save</button>
   `;
 }
+
 function saveCash(){
-  let v=val.value;
+  let v=cash.value;
   if(!v)return alert("Enter value");
   append(`Cash In:- ${v}`);
   calculate();
   back();
 }
 
-// CO EXPENSE
+// EXPENSE
 function openExpense(){
   mainBtns.innerHTML="";
   box.innerHTML=`
     <button class="backBtn" onclick="back()">⬅ Back</button>
-    <input type="number" id="val">
+    <input type="number" id="official" placeholder="Official Expense">
+    <input type="number" id="actual" placeholder="Actual Expense">
     <input type="text" id="note" placeholder="Note">
     <button onclick="saveExpense()">Save</button>
   `;
 }
+
 function saveExpense(){
-  let v=val.value;
+  let off=official.value;
+  let act=actual.value;
   let n=note.value;
-  if(!v)return alert("Enter amount");
-  append(`Co. Expense:- ${v}`);
-  append(`Note:- ${n}`);
-  calculate();
-  back();
-}
 
-// PERSONAL EXPENSE
-function openPExpense(){
-  mainBtns.innerHTML="";
-  box.innerHTML=`
-    <button class="backBtn" onclick="back()">⬅ Back</button>
-    <input type="number" id="val">
-    <input type="text" id="note" placeholder="Note">
-    <button onclick="savePExpense()">Save</button>
-  `;
-}
-function savePExpense(){
-  let v=val.value;
-  let n=note.value;
-  if(!v)return alert("Enter amount");
-  append(`P. Expense:- ${v}`);
-  append(`Note:- ${n}`);
-  calculate();
-  back();
-}
+  if(!off || !act) return alert("Enter both values");
 
-// SALARY
-function openSalary(){
-  mainBtns.innerHTML="";
-  box.innerHTML=`
-    <button class="backBtn" onclick="back()">⬅ Back</button>
-    <input type="number" id="salary" placeholder="Enter Salary">
-    <button onclick="saveSalary()">Save</button>
-  `;
-}
-function saveSalary(){
-  let s=salary.value;
-  if(!s)return alert("Enter salary");
-  localStorage.setItem(SALARY_KEY,s);
-  alert("Saved ✅");
+  append(`Official Expense:- ${off}`);
+  append(`Actual Expense:- ${act}`);
+  append(`Note:- ${n}`);
+
   calculate();
   back();
 }
@@ -287,6 +253,7 @@ function showData(){
   box.innerHTML="";
   dataBox.style.display="block";
   notebook.style.display="block";
+  bottomBar.style.display="none";
 
   dataBox.innerHTML=`
     <button onclick="hideData()">⬅ Hide</button>
@@ -298,7 +265,7 @@ function showData(){
   notebook.innerText=getData();
 }
 
-// HIDE
+// HIDE DATA
 function hideData(){
   dataBox.style.display="none";
   notebook.style.display="none";
@@ -312,13 +279,15 @@ function editData(){
 
   box.innerHTML=`
     <button class="backBtn" onclick="showData()">⬅ Back</button>
-    <textarea id="edit" style="height:60vh">${getData()}</textarea>
+    <textarea id="editBox" style="height:60vh">${getData()}</textarea>
     <button onclick="saveEdit()">Save</button>
   `;
 }
+
 function saveEdit(){
-  setData(edit.value||"");
-  location.reload();
+  setData(editBox.value||"");
+  calculate();
+  showData();
 }
 
 // COPY
@@ -332,7 +301,6 @@ function clearData(){
   let p=prompt("Enter Password","");
   if(p==="5252"){
     localStorage.removeItem(STORAGE_KEY);
-    localStorage.removeItem(SALARY_KEY);
     location.reload();
   }else alert("Wrong Password");
 }
