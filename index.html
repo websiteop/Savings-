@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cash Book</title>
+
+<style>
+body{
+  margin:0;
+  font-family:sans-serif;
+  background:#eef2f7;
+  padding-bottom:140px;
+}
+
+.header{
+  background:linear-gradient(90deg,#0077b6,#00b4d8);
+  color:white;
+  padding:15px;
+  text-align:center;
+  font-size:18px;
+  font-weight:bold;
+}
+
+.card{
+  background:white;
+  margin:12px;
+  padding:12px;
+  border-radius:16px;
+  box-shadow:0 4px 12px rgba(0,0,0,0.1);
+}
+
+.grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+}
+
+.cardBtn{
+  background:#f1f5f9;
+  padding:16px;
+  border-radius:14px;
+  text-align:center;
+}
+
+textarea,input{
+  width:100%;
+  padding:10px;
+  margin-top:8px;
+  border-radius:10px;
+  border:1px solid #ccc;
+}
+
+button{
+  width:100%;
+  padding:12px;
+  margin-top:8px;
+  border:none;
+  border-radius:10px;
+  background:#0077b6;
+  color:white;
+}
+
+.backBtn{background:#6c757d;}
+
+.bottomBar{
+  position:fixed;
+  bottom:0;
+  width:100%;
+  background:white;
+  padding:10px;
+  box-shadow:0 -2px 10px rgba(0,0,0,0.1);
+}
+
+#summary{
+  text-align:center;
+  font-size:15px;
+}
+
+#notebook{
+  white-space:pre-wrap;
+  max-height:60vh;
+  overflow:auto;
+}
+</style>
+</head>
+
+<body>
+
+<div class="header">Cash Book</div>
+
+<div class="card">
+  <div id="mainBtns"></div>
+  <div id="box"></div>
+</div>
+
+<div class="card" id="dataBox" style="display:none;"></div>
+<div class="card" id="notebook" style="display:none;"></div>
+
+<div class="bottomBar">
+  <div id="summary"></div>
+  <button onclick="showData()">📊 Show Data</button>
+</div>
+
+<script>
+
+// 🔐 STORAGE KEYS
+const STORAGE_KEY = "cash_book_v1";
+const SALARY_KEY = "cash_book_salary_v1";
+
+// STORAGE
+function getData(){ return localStorage.getItem(STORAGE_KEY) || ""; }
+function setData(d){ localStorage.setItem(STORAGE_KEY, d || ""); }
+
+// DATE
+function date(){
+  let d=new Date();
+  return d.getDate()+"/"+(d.getMonth()+1)+"/"+d.getFullYear();
+}
+
+// 🚀 SMART APPEND
+function append(entry){
+  let data = getData();
+  let today = "DATE: " + date();
+
+  let lines = data.trim().split("\n").reverse();
+  let lastDate = "";
+
+  for(let line of lines){
+    if(line.startsWith("DATE:")){
+      lastDate = line.trim();
+      break;
+    }
+  }
+
+  if(lastDate !== today){
+    data += "\n" + today + "\n";
+  }
+
+  data += entry + "\n";
+  setData(data);
+}
+
+// 📊 CALCULATION
+function calculate(){
+  let data=getData().split("\n");
+
+  let cash=0, co=0, personal=0, overtime=0;
+
+  data.forEach(line=>{
+    if(line.startsWith("Cash In:-")) cash += parseInt(line.split(":-")[1])||0;
+    if(line.startsWith("Co. Expense:-")) co += parseInt(line.split(":-")[1])||0;
+    if(line.startsWith("P. Expense:-")) personal += parseInt(line.split(":-")[1])||0;
+    if(line.startsWith("Overtime:-")) overtime += parseInt(line.split(":-")[1])||0;
+  });
+
+  let balance = cash - co - personal;
+
+  let salary = parseInt(localStorage.getItem(SALARY_KEY) || 0);
+  let liveSalary = 0;
+
+  if(salary){
+    liveSalary = (salary/30/8*overtime) + salary + co - cash;
+  }
+
+  summary.innerHTML=`
+    <b>Balance</b><br>${balance}<br><br>
+    <b>Personal Expense</b><br>${personal}<br><br>
+    <b>Live Salary</b><br>${salary ? Math.round(liveSalary) : "Not Set"}
+  `;
+}
+
+// INIT
+function init(){
+  mainBtns.innerHTML=`
+    <div class="grid">
+      <div class="cardBtn" onclick="openOvertime()">⏱ Overtime</div>
+      <div class="cardBtn" onclick="openCash()">💰 Cash In</div>
+      <div class="cardBtn" onclick="openExpense()">🏢 Co. Expense</div>
+      <div class="cardBtn" onclick="openPExpense()">🧾 P. Expense</div>
+      <div class="cardBtn" onclick="openSalary()">⚙ Set Salary</div>
+    </div>
+  `;
+  box.innerHTML="";
+  calculate();
+}
+init();
+
+// BACK
+function back(){ init(); }
+
+// OVERTIME
+function openOvertime(){
+  mainBtns.innerHTML="";
+  box.innerHTML=`
+    <button class="backBtn" onclick="back()">⬅ Back</button>
+    <input type="number" id="val">
+    <button onclick="saveOvertime()">Save</button>
+  `;
+}
+function saveOvertime(){
+  let v=val.value;
+  if(!v)return alert("Enter value");
+  append(`Overtime:- ${v}`);
+  calculate();
+  back();
+}
+
+// CASH
+function openCash(){
+  mainBtns.innerHTML="";
+  box.innerHTML=`
+    <button class="backBtn" onclick="back()">⬅ Back</button>
+    <input type="number" id="val">
+    <button onclick="saveCash()">Save</button>
+  `;
+}
+function saveCash(){
+  let v=val.value;
+  if(!v)return alert("Enter value");
+  append(`Cash In:- ${v}`);
+  calculate();
+  back();
+}
+
+// CO EXPENSE
+function openExpense(){
+  mainBtns.innerHTML="";
+  box.innerHTML=`
+    <button class="backBtn" onclick="back()">⬅ Back</button>
+    <input type="number" id="val">
+    <input type="text" id="note" placeholder="Note">
+    <button onclick="saveExpense()">Save</button>
+  `;
+}
+function saveExpense(){
+  let v=val.value;
+  let n=note.value;
+  if(!v)return alert("Enter amount");
+  append(`Co. Expense:- ${v}`);
+  append(`Note:- ${n}`);
+  calculate();
+  back();
+}
+
+// PERSONAL EXPENSE
+function openPExpense(){
+  mainBtns.innerHTML="";
+  box.innerHTML=`
+    <button class="backBtn" onclick="back()">⬅ Back</button>
+    <input type="number" id="val">
+    <input type="text" id="note" placeholder="Note">
+    <button onclick="savePExpense()">Save</button>
+  `;
+}
+function savePExpense(){
+  let v=val.value;
+  let n=note.value;
+  if(!v)return alert("Enter amount");
+  append(`P. Expense:- ${v}`);
+  append(`Note:- ${n}`);
+  calculate();
+  back();
+}
+
+// SALARY
+function openSalary(){
+  mainBtns.innerHTML="";
+  box.innerHTML=`
+    <button class="backBtn" onclick="back()">⬅ Back</button>
+    <input type="number" id="salary" placeholder="Enter Salary">
+    <button onclick="saveSalary()">Save</button>
+  `;
+}
+function saveSalary(){
+  let s=salary.value;
+  if(!s)return alert("Enter salary");
+  localStorage.setItem(SALARY_KEY,s);
+  alert("Saved ✅");
+  calculate();
+  back();
+}
+
+// SHOW DATA
+function showData(){
+  mainBtns.innerHTML="";
+  box.innerHTML="";
+  dataBox.style.display="block";
+  notebook.style.display="block";
+
+  dataBox.innerHTML=`
+    <button onclick="hideData()">⬅ Hide</button>
+    <button onclick="editData()">✏ Edit</button>
+    <button onclick="copyData()">📋 Copy</button>
+    <button onclick="clearData()">🗑 Clear</button>
+  `;
+
+  notebook.innerText=getData();
+}
+
+// HIDE
+function hideData(){
+  dataBox.style.display="none";
+  notebook.style.display="none";
+  init();
+}
+
+// EDIT
+function editData(){
+  let p=prompt("Enter Password","");
+  if(p!=="5252") return alert("Wrong Password");
+
+  box.innerHTML=`
+    <button class="backBtn" onclick="showData()">⬅ Back</button>
+    <textarea id="edit" style="height:60vh">${getData()}</textarea>
+    <button onclick="saveEdit()">Save</button>
+  `;
+}
+function saveEdit(){
+  setData(edit.value||"");
+  location.reload();
+}
+
+// COPY
+function copyData(){
+  navigator.clipboard.writeText(getData());
+  alert("Copied!");
+}
+
+// CLEAR
+function clearData(){
+  let p=prompt("Enter Password","");
+  if(p==="5252"){
+    localStorage.removeItem(STORAGE_KEY);
+    localStorage.removeItem(SALARY_KEY);
+    location.reload();
+  }else alert("Wrong Password");
+}
+
+</script>
+
+</body>
+</html>
