@@ -165,7 +165,7 @@ function calculate(){
       actual += parseInt(line.split(":-")[1])||0;
   });
 
-  let balance = cash - actual;
+  let balance = cash - official;
   let saving = official - actual;
 
   summary.innerHTML=`
